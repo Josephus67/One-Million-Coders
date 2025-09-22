@@ -331,12 +331,12 @@ export function AdminCourseManagement({ onBack }: AdminCourseManagementProps) {
                         />
                         <div>
                           <p className="font-medium text-slate-900">{course.title}</p>
-                          <p className="text-sm text-slate-500">{course.instructor?.name || 'Unknown Instructor'}</p>
+                          <p className="text-sm text-slate-500">{course.instructor || 'Unknown Instructor'}</p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{course.category?.name || course.category || 'Uncategorized'}</Badge>
+                      <Badge variant="secondary">{course.category || 'Uncategorized'}</Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant={

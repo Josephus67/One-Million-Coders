@@ -133,7 +133,7 @@ export function CourseLearningPage({
               
               <div className="hidden md:block">
                 <h1 className="text-xl font-semibold text-gray-900">{course.title}</h1>
-                <p className="text-sm text-gray-600">by {course.instructor?.name || 'Unknown Instructor'}</p>
+                <p className="text-sm text-gray-600">by {course.instructor || 'Unknown Instructor'}</p>
               </div>
             </div>
             
@@ -301,7 +301,7 @@ export function CourseLearningPage({
                     <div className="flex items-center space-x-3">
                       <User className="w-5 h-5 text-gray-400" />
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{course.instructor?.name || 'Unknown Instructor'}</p>
+                        <p className="text-sm font-medium text-gray-900">{course.instructor || 'Unknown Instructor'}</p>
                         <p className="text-xs text-gray-600">Instructor</p>
                       </div>
                     </div>
@@ -318,7 +318,7 @@ export function CourseLearningPage({
                       <BookOpen className="w-5 h-5 text-gray-400" />
                       <div>
                         <p className="text-sm font-medium text-gray-900">{course.level} Level</p>
-                        <p className="text-xs text-gray-600">{course.category?.name || 'Uncategorized'}</p>
+                        <p className="text-xs text-gray-600">{course.category || 'Uncategorized'}</p>
                       </div>
                     </div>
                   </div>

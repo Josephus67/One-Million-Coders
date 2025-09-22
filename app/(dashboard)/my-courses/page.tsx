@@ -16,6 +16,43 @@ import {
   Users
 } from "lucide-react";
 
+// Type for serialized enrollment data
+type SerializedEnrollment = {
+  id: string;
+  enrolledAt: string;
+  completedAt: string | null;
+  progress: number;
+  currentLesson: string | null;
+  userId: string;
+  courseId: string;
+  course: {
+    id: string;
+    title: string;
+    slug: string;
+    image: string | null;
+    level: string;
+    duration: number | null;
+    instructor: {
+      name: string | null;
+    };
+    _count: {
+      lessons: number;
+    };
+    reviews: {
+      rating: number;
+    }[];
+  };
+  lessonProgress: {
+    id: string;
+    isCompleted: boolean;
+    watchProgress: number;
+    timeSpent: number;
+    lastWatched: string | null;
+    lessonId: string;
+    enrollmentId: string;
+  }[];
+};
+
 export default async function MyCoursesPage() {
   const session = await getServerSession(authOptions);
 
@@ -40,7 +77,7 @@ export default async function MyCoursesPage() {
   });
 
   // Serialize data for client components
-  const serializedEnrollments = JSON.parse(JSON.stringify(enrollments, (key, value) => {
+  const serializedEnrollments: SerializedEnrollment[] = JSON.parse(JSON.stringify(enrollments, (key, value) => {
     // Convert Decimal objects to numbers
     if (value && typeof value === 'object' && value.constructor && value.constructor.name === 'Decimal') {
       return Number(value);
@@ -61,7 +98,7 @@ export default async function MyCoursesPage() {
 
       {serializedEnrollments.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {serializedEnrollments.map((enrollment) => {
+          {serializedEnrollments.map((enrollment: SerializedEnrollment) => {
             const averageRating = enrollment.course.reviews.length > 0
               ? enrollment.course.reviews.reduce((sum, review) => sum + review.rating, 0) / enrollment.course.reviews.length
               : 0;

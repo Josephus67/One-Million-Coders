@@ -288,7 +288,7 @@ export function CourseCatalog({ onCourseSelect, onEnrollCourse, enrolledCourses 
                 </div>
                 
                 <div className="mb-4">
-                  <p className="text-sm text-gray-500 mb-2">Instructor: <span className="font-medium text-gray-700">{course.instructor?.name || 'Unknown Instructor'}</span></p>
+                  <p className="text-sm text-gray-500 mb-2">Instructor: <span className="font-medium text-gray-700">{course.instructor || 'Unknown Instructor'}</span></p>
                   <div className="flex flex-wrap gap-2">
                     {course.tags.slice(0, 3).map((tag, index) => (
                       <Badge key={index} variant="secondary" className="text-xs bg-gray-100 text-gray-600 hover:bg-gray-200">
