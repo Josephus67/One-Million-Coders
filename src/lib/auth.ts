@@ -46,11 +46,17 @@ export const authOptions: NextAuthOptions = {
         };
       }
     }),
-    // Temporarily disabled - uncomment and configure when you have Google OAuth credentials
-    // GoogleProvider({
-    //   clientId: process.env.GOOGLE_CLIENT_ID || "",
-    //   clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-    // }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
+    }),
   ],
   session: {
     strategy: "jwt",
