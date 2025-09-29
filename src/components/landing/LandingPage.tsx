@@ -121,10 +121,10 @@ export function LandingPage() {
           </div>
           <div className="flex items-center space-x-4">
             <Button variant="ghost" asChild>
-              <Link href="/auth/login">Sign In</Link>
+              <Link href="/sign-in">Sign In</Link>
             </Button>
             <Button asChild>
-              <Link href="/auth/register">Get Started</Link>
+              <Link href="/sign-up">Get Started</Link>
             </Button>
           </div>
         </ResponsiveContainer>
@@ -149,7 +149,7 @@ export function LandingPage() {
             <FadeInOnScroll>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button size="lg" asChild className="text-lg px-8 py-6">
-                  <Link href="/auth/register">
+                  <Link href="/sign-up">
                     Start Learning Today
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Link>
@@ -237,7 +237,12 @@ export function LandingPage() {
                   </div>
                   <CardHeader>
                     <div className="flex items-center justify-between mb-2">
-                      <Badge variant="secondary">{course.category || 'Uncategorized'}</Badge>
+                      <Badge variant="secondary">
+                        {typeof course.category === 'string' 
+                          ? course.category 
+                          : (course.category as any)?.name || 'Uncategorized'
+                        }
+                      </Badge>
                       <div className="flex items-center">
                         <Star className="w-4 h-4 fill-yellow-400 text-yellow-400 mr-1" />
                         <span className="text-sm font-medium">{course.rating}</span>
@@ -254,7 +259,7 @@ export function LandingPage() {
                       </span>
                     </div>
                     <Button className="w-full" asChild>
-                      <Link href="/auth/register">Enroll Now</Link>
+                      <Link href="/sign-up">Enroll Now</Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -321,10 +326,10 @@ export function LandingPage() {
             <FadeInOnScroll>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button size="lg" variant="secondary" asChild className="text-lg px-8 py-6">
-                  <Link href="/auth/register">Get Started for Free</Link>
+                  <Link href="/sign-up">Get Started for Free</Link>
                 </Button>
                 <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-white text-white hover:bg-white hover:text-blue-600">
-                  <Link href="/auth/login">Sign In</Link>
+                  <Link href="/sign-in">Sign In</Link>
                 </Button>
               </div>
             </FadeInOnScroll>

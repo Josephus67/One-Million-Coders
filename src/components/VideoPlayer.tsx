@@ -8,7 +8,8 @@ import { Progress } from './ui/progress';
 import { 
   Play, 
   CheckCircle,
-  ExternalLink
+  ExternalLink,
+  BookOpen
 } from 'lucide-react';
 import { Lesson } from '../types/course';
 
@@ -65,12 +66,92 @@ export function VideoPlayer({
   const videoId = getYouTubeVideoId(lesson.videoUrl || '');
   const embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&showinfo=0` : lesson.videoUrl || '';
 
+  // YouTube video fallback function
+  const getDefaultVideoForLesson = (lesson: Lesson) => {
+    const lessonTitle = lesson.title.toLowerCase();
+    
+    // Programming basics fallbacks
+    if (lessonTitle.includes('html') || lessonTitle.includes('web structure')) {
+      return 'https://www.youtube.com/watch?v=UB1O30fR-EE';
+    }
+    if (lessonTitle.includes('css') || lessonTitle.includes('styling')) {
+      return 'https://www.youtube.com/watch?v=yfoY53QXEnI';
+    }
+    if (lessonTitle.includes('javascript') || lessonTitle.includes('js')) {
+      return 'https://www.youtube.com/watch?v=W6NZfCO5SIk';
+    }
+    if (lessonTitle.includes('react') || lessonTitle.includes('components')) {
+      return 'https://www.youtube.com/watch?v=bMknfKXIFA8';
+    }
+    if (lessonTitle.includes('python') || lessonTitle.includes('programming fundamentals')) {
+      return 'https://www.youtube.com/watch?v=rfscVS0vtbw';
+    }
+    if (lessonTitle.includes('responsive') || lessonTitle.includes('mobile')) {
+      return 'https://www.youtube.com/watch?v=srvUrASNdFs';
+    }
+    if (lessonTitle.includes('function') || lessonTitle.includes('control')) {
+      return 'https://www.youtube.com/watch?v=N8ap4k_1QEQ';
+    }
+    if (lessonTitle.includes('dom') || lessonTitle.includes('manipulation')) {
+      return 'https://www.youtube.com/watch?v=0ik6X4DJKCc';
+    }
+    
+    // Default programming introduction video
+    return 'https://www.youtube.com/watch?v=zOjov-2OZ0E';
+  };
+
+  // Use fallback video if no videoUrl provided
+  const finalVideoUrl = lesson.videoUrl || getDefaultVideoForLesson(lesson);
+  const finalVideoId = getYouTubeVideoId(finalVideoUrl);
+  const finalEmbedUrl = finalVideoId ? `https://www.youtube.com/embed/${finalVideoId}?rel=0&modestbranding=1&showinfo=0` : '';
+
+  // If still no valid video URL after fallback
+  if (!finalEmbedUrl) {
+    return (
+      <Card className={`overflow-hidden ${className}`}>
+        <div className="aspect-video bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+          <div className="text-center p-6">
+            <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              Video Content Coming Soon
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              We're preparing quality video content for this lesson. In the meantime, you can review the lesson content below and mark your progress.
+            </p>
+            {lesson.content && (
+              <div className="text-left bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-4">
+                <p className="text-sm text-gray-700 dark:text-gray-300">{lesson.content}</p>
+              </div>
+            )}
+            <div className="flex justify-center space-x-2">
+              <Button
+                onClick={() => handleProgressUpdate(Math.min((watchProgress || 0) + 25, 100))}
+                variant="outline"
+                size="sm"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                Mark 25% Progress
+              </Button>
+              <Button
+                onClick={handleMarkComplete}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Mark as Complete
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card className={`overflow-hidden bg-black ${className}`}>
       <div className="relative aspect-video group">
         {/* YouTube iframe embed */}
         <iframe
-          src={embedUrl}
+          src={finalEmbedUrl}
           title={lesson.title}
           className="w-full h-full"
           frameBorder="0"
@@ -93,14 +174,18 @@ export function VideoPlayer({
                   {watchProgress || 0}% watched
                 </Badge>
               )}
+              {!lesson.videoUrl && (
+                <Badge className="bg-yellow-600 text-white shadow-lg">
+                  Fallback Video
+                </Badge>
+              )}
             </div>
             
             <Button
-              onClick={() => lesson.videoUrl && window.open(lesson.videoUrl, '_blank')}
+              onClick={() => finalVideoUrl && window.open(finalVideoUrl, '_blank')}
               size="sm"
               variant="ghost"
               className="text-white hover:bg-white/20 shadow-lg"
-              disabled={!lesson.videoUrl}
             >
               <ExternalLink className="w-4 h-4 mr-2" />
               Open in YouTube

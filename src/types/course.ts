@@ -2,6 +2,7 @@ export interface Lesson {
   id: string;
   title: string;
   description: string | null;
+  content?: string | null; // Lesson content/text
   videoUrl?: string | null; // YouTube URL
   duration?: string | null; // Duration as string (e.g., "10:30")
   order: number;
@@ -10,15 +11,28 @@ export interface Lesson {
   isPublished?: boolean;
 }
 
+export interface Instructor {
+  id: string;
+  name: string;
+  image: string;
+  bio: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface Course {
   id: string;
   title: string;
   description: string;
-  category: string;
+  category: Category | string; // Can be object from DB or string from mock data
   image: string;
   duration: string;
   level: 'Beginner' | 'Intermediate' | 'Advanced';
-  instructor: string;
+  instructor: Instructor | string;
   rating: number;
   students: number;
   price: string;

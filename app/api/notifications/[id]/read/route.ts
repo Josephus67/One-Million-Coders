@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
 interface Params {
@@ -9,12 +8,12 @@ interface Params {
   };
 }
 
-// PATCH /api/notifications/[id]/read - Mark a specific notification as read
+// PATCH /api/notifications/[id]/read - Mark notification as read
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
-    if (!session || !session.user) {
+    if (!userId) {
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 }
@@ -27,7 +26,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const updatedNotification = await prisma.notification.updateMany({
       where: {
         id: notificationId,
-        userId: session.user.id,
+        userId: userId,
       },
       data: {
         isRead: true,

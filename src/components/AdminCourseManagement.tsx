@@ -90,7 +90,12 @@ export function AdminCourseManagement({ onBack }: AdminCourseManagementProps) {
         description: newCourse.description,
         category: newCourse.category,
         level: newCourse.level,
-        instructor: newCourse.instructor,
+        instructor: {
+          id: `instructor-${Date.now()}`,
+          name: newCourse.instructor,
+          image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
+          bio: 'Experienced instructor'
+        },
         image: newCourse.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400',
         duration: newCourse.duration,
         price: newCourse.price,
@@ -130,7 +135,12 @@ export function AdminCourseManagement({ onBack }: AdminCourseManagementProps) {
         description: newCourse.description,
         category: newCourse.category,
         level: newCourse.level,
-        instructor: newCourse.instructor,
+        instructor: {
+          id: typeof selectedCourse.instructor === 'string' ? `instructor-${Date.now()}` : selectedCourse.instructor.id,
+          name: newCourse.instructor,
+          image: typeof selectedCourse.instructor === 'string' ? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100' : selectedCourse.instructor.image,
+          bio: typeof selectedCourse.instructor === 'string' ? 'Experienced instructor' : selectedCourse.instructor.bio
+        },
         image: newCourse.image || selectedCourse.image,
         duration: newCourse.duration,
         price: newCourse.price,
@@ -199,9 +209,9 @@ export function AdminCourseManagement({ onBack }: AdminCourseManagementProps) {
     setNewCourse({
       title: course.title,
       description: course.description,
-      category: course.category,
+      category: typeof course.category === 'string' ? course.category : (course.category as any)?.name || '',
       level: course.level,
-      instructor: course.instructor,
+      instructor: typeof course.instructor === 'string' ? course.instructor : course.instructor.name,
       image: course.image,
       duration: course.duration,
       price: course.price,
@@ -331,12 +341,17 @@ export function AdminCourseManagement({ onBack }: AdminCourseManagementProps) {
                         />
                         <div>
                           <p className="font-medium text-slate-900">{course.title}</p>
-                          <p className="text-sm text-slate-500">{course.instructor || 'Unknown Instructor'}</p>
+                          <p className="text-sm text-slate-500">{typeof course.instructor === 'string' ? course.instructor : course.instructor?.name || 'Unknown Instructor'}</p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{course.category || 'Uncategorized'}</Badge>
+                      <Badge variant="secondary">
+                        {typeof course.category === 'string' 
+                          ? course.category 
+                          : (course.category as any)?.name || 'Uncategorized'
+                        }
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant={

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
+import { prisma, withDatabaseConnection } from "@/lib/prisma";
 import { z } from "zod";
 
 const progressUpdateSchema = z.object({
@@ -20,9 +19,9 @@ interface Params {
 // PATCH /api/enrollments/[id]/progress - Update lesson progress
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
-    if (!session || !session.user) {
+    if (!userId) {
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 }
@@ -43,100 +42,106 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const { lessonId, watchProgress, isCompleted, timeSpent } = validation.data;
 
-    // Verify enrollment belongs to the user
-    const enrollment = await prisma.enrollment.findFirst({
-      where: {
-        id: enrollmentId,
-        userId: session.user.id,
-      },
-      include: {
-        course: {
-          include: {
-            lessons: {
-              orderBy: { order: 'asc' },
+    // Use database connection wrapper for reliable operation
+    const result = await withDatabaseConnection(async () => {
+      // Verify enrollment belongs to the user
+      const enrollment = await prisma.enrollment.findFirst({
+        where: {
+          id: enrollmentId,
+          userId: userId,
+        },
+        include: {
+          course: {
+            include: {
+              lessons: {
+                orderBy: { order: 'asc' },
+              },
             },
           },
         },
-      },
-    });
+      });
 
-    if (!enrollment) {
-      return NextResponse.json(
-        { error: "Enrollment not found" },
-        { status: 404 }
-      );
-    }
+      if (!enrollment) {
+        throw new Error("Enrollment not found");
+      }
 
-    // Verify lesson belongs to the course
-    const lesson = enrollment.course.lessons.find(l => l.id === lessonId);
-    if (!lesson) {
-      return NextResponse.json(
-        { error: "Lesson not found in this course" },
-        { status: 404 }
-      );
-    }
+      // Verify lesson belongs to the course
+      const lesson = enrollment.course.lessons.find(l => l.id === lessonId);
+      if (!lesson) {
+        throw new Error("Lesson not found in this course");
+      }
 
-    // Update or create lesson progress
-    const lessonProgress = await prisma.lessonProgress.upsert({
-      where: {
-        enrollmentId_lessonId: {
+      // Update or create lesson progress
+      const lessonProgress = await prisma.lessonProgress.upsert({
+        where: {
+          enrollmentId_lessonId: {
+            enrollmentId: enrollmentId,
+            lessonId: lessonId,
+          },
+        },
+        update: {
+          ...(watchProgress !== undefined && { watchProgress }),
+          ...(isCompleted !== undefined && { isCompleted }),
+          ...(timeSpent !== undefined && { timeSpent: { increment: timeSpent } }),
+          lastWatched: new Date(),
+        },
+        create: {
           enrollmentId: enrollmentId,
           lessonId: lessonId,
+          watchProgress: watchProgress || 0,
+          isCompleted: isCompleted || false,
+          timeSpent: timeSpent || 0,
+          lastWatched: new Date(),
         },
-      },
-      update: {
-        ...(watchProgress !== undefined && { watchProgress }),
-        ...(isCompleted !== undefined && { isCompleted }),
-        ...(timeSpent !== undefined && { timeSpent: { increment: timeSpent } }),
-        lastWatched: new Date(),
-      },
-      create: {
-        enrollmentId: enrollmentId,
-        lessonId: lessonId,
-        watchProgress: watchProgress || 0,
-        isCompleted: isCompleted || false,
-        timeSpent: timeSpent || 0,
-        lastWatched: new Date(),
-      },
-    });
+      });
 
-    // Calculate overall course progress
-    const allLessons = enrollment.course.lessons;
-    const completedLessons = await prisma.lessonProgress.count({
-      where: {
-        enrollmentId: enrollmentId,
-        isCompleted: true,
-      },
-    });
+      // Calculate overall course progress
+      const allLessons = enrollment.course.lessons;
+      const completedLessons = await prisma.lessonProgress.count({
+        where: {
+          enrollmentId: enrollmentId,
+          isCompleted: true,
+        },
+      });
 
-    const overallProgress = Math.round((completedLessons / allLessons.length) * 100);
+      const overallProgress = Math.round((completedLessons / allLessons.length) * 100);
 
-    // Update enrollment progress
-    let updateData: any = {
-      progress: overallProgress,
-    };
+      // Update enrollment progress
+      let updateData: any = {
+        progress: overallProgress,
+      };
 
-    // If lesson is completed, update current lesson to next incomplete lesson
-    if (isCompleted) {
-      const nextIncompleteLesson = await findNextIncompleteLesson(enrollmentId, allLessons);
-      updateData.currentLesson = nextIncompleteLesson?.id || lesson.id;
+      // If lesson is completed, update current lesson to next incomplete lesson
+      if (isCompleted) {
+        const nextIncompleteLesson = await findNextIncompleteLesson(enrollmentId, allLessons);
+        updateData.currentLesson = nextIncompleteLesson?.id || lesson.id;
 
-      // Mark course as completed if all lessons are done
-      if (overallProgress === 100) {
-        updateData.completedAt = new Date();
+        // Mark course as completed if all lessons are done
+        if (overallProgress === 100) {
+          updateData.completedAt = new Date();
+        }
       }
+
+      const updatedEnrollment = await prisma.enrollment.update({
+        where: { id: enrollmentId },
+        data: updateData,
+      });
+
+      return {
+        message: "Progress updated successfully",
+        lessonProgress,
+        enrollment: updatedEnrollment,
+      };
+    });
+
+    if (!result) {
+      return NextResponse.json(
+        { error: "Database temporarily unavailable" },
+        { status: 503 }
+      );
     }
 
-    const updatedEnrollment = await prisma.enrollment.update({
-      where: { id: enrollmentId },
-      data: updateData,
-    });
-
-    return NextResponse.json({
-      message: "Progress updated successfully",
-      lessonProgress,
-      enrollment: updatedEnrollment,
-    });
+    return NextResponse.json(result);
 
   } catch (error) {
     console.error("Error updating progress:", error);

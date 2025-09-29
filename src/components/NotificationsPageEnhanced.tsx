@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +25,7 @@ interface NotificationsPageProps {
 }
 
 export function NotificationsPage({ onBack }: NotificationsPageProps) {
-  const { data: session } = useSession();
+  const { user, isSignedIn } = useUser();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -51,10 +51,10 @@ export function NotificationsPage({ onBack }: NotificationsPageProps) {
   }, [filter]);
 
   useEffect(() => {
-    if (session?.user?.id) {
+    if (isSignedIn && user?.id) {
       fetchNotifications();
     }
-  }, [session, fetchNotifications]);
+  }, [isSignedIn, user?.id, fetchNotifications]);
 
   const markAsRead = async (notificationId: string) => {
     try {

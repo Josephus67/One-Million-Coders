@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
+import { prisma, withDatabaseConnection } from "@/lib/prisma";
 
 interface Params {
   params: {
@@ -12,9 +11,9 @@ interface Params {
 // DELETE /api/notifications/[id] - Delete a specific notification
 export async function DELETE(req: NextRequest, { params }: Params) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
-    if (!session || !session.user) {
+    if (!userId) {
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 }
@@ -27,7 +26,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     const notification = await prisma.notification.findFirst({
       where: {
         id: notificationId,
-        userId: session.user.id,
+        userId: userId,
       },
     });
 

@@ -1,4 +1,4 @@
-import { PrismaClient, Level, CourseStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -45,11 +45,12 @@ async function main() {
     }),
   ]);
 
-  // Create instructor user
+  // Create instructor user (using placeholder Clerk ID for seed data)
   const instructor = await prisma.user.upsert({
     where: { email: 'instructor@ghanatechonline.com' },
     update: {},
     create: {
+      id: 'user_seed_instructor_001', // Placeholder Clerk ID
       email: 'instructor@ghanatechonline.com',
       name: 'Dr. Samuel Kwame',
       role: 'ADMIN',
@@ -64,7 +65,7 @@ async function main() {
       description: 'Learn HTML and CSS from scratch. Build beautiful, responsive websites with modern web standards.',
       slug: 'html-css-beginners',
       image: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=500',
-      level: Level.BEGINNER,
+      level: "BEGINNER",
       price: 0,
       duration: '8 hours',
       categoryId: categories[0].id,
@@ -100,7 +101,7 @@ async function main() {
       description: 'Master JavaScript programming from basics to advanced concepts. Build interactive web applications.',
       slug: 'javascript-beginners',
       image: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=500',
-      level: Level.BEGINNER,
+      level: "BEGINNER",
       price: 0,
       duration: '12 hours',
       categoryId: categories[1].id,
@@ -136,7 +137,7 @@ async function main() {
       description: 'Build modern web applications with React.js. Learn components, hooks, and state management.',
       slug: 'react-complete-course',
       image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=500',
-      level: Level.INTERMEDIATE,
+      level: "INTERMEDIATE",
       price: 0,
       duration: '15 hours',
       categoryId: categories[0].id,
@@ -172,7 +173,7 @@ async function main() {
       description: 'Learn Python from beginner to advanced. Perfect for automation, web development, and data science.',
       slug: 'python-masterclass',
       image: 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=500',
-      level: Level.BEGINNER,
+      level: "BEGINNER",
       price: 0,
       duration: '20 hours',
       categoryId: categories[1].id,
@@ -208,7 +209,7 @@ async function main() {
       description: 'Create beautiful mobile apps for iOS and Android using Flutter and Dart programming language.',
       slug: 'flutter-mobile-development',
       image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=500',
-      level: Level.INTERMEDIATE,
+      level: "INTERMEDIATE",
       price: 0,
       duration: '18 hours',
       categoryId: categories[2].id,
@@ -244,7 +245,7 @@ async function main() {
       description: 'Learn data analysis, visualization, and machine learning with Python libraries like Pandas and Scikit-learn.',
       slug: 'data-science-python',
       image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=500',
-      level: Level.INTERMEDIATE,
+      level: "INTERMEDIATE",
       price: 0,
       duration: '25 hours',
       categoryId: categories[3].id,
@@ -287,7 +288,7 @@ async function main() {
       create: {
         ...courseInfo,
         instructorId: instructor.id,
-        status: CourseStatus.PUBLISHED,
+        status: "PUBLISHED",
         averageRating: Math.random() * 2 + 3, // Random rating between 3-5
         totalReviews: Math.floor(Math.random() * 100) + 10, // Random reviews 10-110
       },

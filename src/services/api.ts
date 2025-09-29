@@ -108,7 +108,12 @@ export function transformApiCourseToMockCourse(apiCourse: ApiCourse) {
     duration: apiCourse.duration || '4 weeks',
     level: (apiCourse.level === 'BEGINNER' ? 'Beginner' : 
            apiCourse.level === 'INTERMEDIATE' ? 'Intermediate' : 'Advanced') as 'Beginner' | 'Intermediate' | 'Advanced',
-    instructor: apiCourse.instructor.name || 'Ghana Tech Instructor',
+    instructor: {
+      id: apiCourse.instructor.id,
+      name: apiCourse.instructor.name || 'Ghana Tech Instructor',
+      image: apiCourse.instructor.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
+      bio: apiCourse.instructor.bio || 'Experienced instructor'
+    },
     rating: apiCourse.averageRating || 0,
     students: apiCourse.totalStudents || 0,
     price: apiCourse.price === 0 ? 'Free' : `$${apiCourse.price}`,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,17 +48,17 @@ interface RecommendationsResponse {
 }
 
 export function CourseRecommendationsEnhanced() {
-  const { data: session } = useSession();
+  const { user, isSignedIn } = useUser();
   const [recommendations, setRecommendations] = useState<RecommendedCourse[]>([]);
   const [metadata, setMetadata] = useState<RecommendationsResponse["metadata"] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (session?.user?.id) {
+    if (isSignedIn && user?.id) {
       fetchRecommendations();
     }
-  }, [session]);
+  }, [isSignedIn, user]);
 
   const fetchRecommendations = async () => {
     try {
@@ -109,7 +109,7 @@ export function CourseRecommendationsEnhanced() {
     return price === 0 ? "Free" : `$${price.toFixed(2)}`;
   };
 
-  if (!session) {
+  if (!isSignedIn) {
     return (
       <Card>
         <CardContent className="p-6 text-center">

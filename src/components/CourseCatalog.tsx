@@ -75,7 +75,10 @@ export function CourseCatalog({ onCourseSelect, onEnrollCourse, enrolledCourses 
 
   const filteredCourses = courses.filter(course => {
     const matchesCategory = selectedCategory === 'all' || 
-      course.category.toLowerCase().replace(' ', '-') === selectedCategory;
+      (typeof course.category === 'string' 
+        ? course.category 
+        : (course.category as any)?.name || ''
+      ).toLowerCase().replace(' ', '-') === selectedCategory;
     const matchesSearch = !searchQuery || 
       course.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
       course.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -288,7 +291,7 @@ export function CourseCatalog({ onCourseSelect, onEnrollCourse, enrolledCourses 
                 </div>
                 
                 <div className="mb-4">
-                  <p className="text-sm text-gray-500 mb-2">Instructor: <span className="font-medium text-gray-700">{course.instructor || 'Unknown Instructor'}</span></p>
+                  <p className="text-sm text-gray-500 mb-2">Instructor: <span className="font-medium text-gray-700">{typeof course.instructor === 'string' ? course.instructor : course.instructor?.name || 'Unknown Instructor'}</span></p>
                   <div className="flex flex-wrap gap-2">
                     {course.tags.slice(0, 3).map((tag, index) => (
                       <Badge key={index} variant="secondary" className="text-xs bg-gray-100 text-gray-600 hover:bg-gray-200">

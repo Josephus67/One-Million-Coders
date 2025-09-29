@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { CourseHeader } from "@/components/course/course-header";
 import { CourseCurriculum } from "@/components/course/course-curriculum";
@@ -24,78 +23,87 @@ function serializeCourse(course: any) {
 }
 
 export default async function CoursePage({ params }: CoursePageProps) {
-  const session = await getServerSession(authOptions);
+  const { userId } = await auth() || {};
 
   const course = await prisma.course.findUnique({
-    where: { slug: params.slug },
-    include: {
-      instructor: {
-        select: {
-          id: true,
-          name: true,
-          image: true,
-          bio: true,
-        },
-      },
-      category: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-        },
-      },
-      lessons: {
-        where: { isPublished: true },
-        orderBy: { order: "asc" },
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          duration: true,
-          order: true,
-          isPublished: true,
-        },
-      },
-      reviews: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              image: true,
-            },
+      where: { slug: params.slug },
+      include: {
+        instructor: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            bio: true,
           },
         },
-        orderBy: { createdAt: "desc" },
-        take: 10,
-      },
-      _count: {
-        select: {
-          enrollments: true,
-          reviews: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        lessons: {
+          where: { isPublished: true },
+          orderBy: { order: "asc" },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            duration: true,
+            order: true,
+            isPublished: true,
+          },
+        },
+        reviews: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        },
+        _count: {
+          select: {
+            enrollments: true,
+            reviews: true,
+          },
         },
       },
-    },
-  });
+    });
 
-  if (!course || course.status !== "PUBLISHED") {
+  if (!course) {
+    notFound();
+  }
+
+  if (course.status !== "PUBLISHED") {
     notFound();
   }
 
   // Check if user is enrolled
   let enrollment = null;
-  if (session?.user?.id) {
-    enrollment = await prisma.enrollment.findUnique({
-      where: {
-        userId_courseId: {
-          userId: session.user.id,
-          courseId: course.id,
+  if (userId) {
+    try {
+      enrollment = await prisma.enrollment.findUnique({
+        where: {
+          userId_courseId: {
+            userId: userId,
+            courseId: course.id,
+          },
         },
-      },
-      include: {
-        lessonProgress: true,
-      },
-    });
+        include: {
+          lessonProgress: true,
+        },
+      });
+    } catch (error) {
+      console.error("Error checking enrollment:", error);
+      // Continue without enrollment data
+    }
   }
 
   // Calculate average rating
@@ -170,7 +178,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
                   averageRating={averageRating}
                   totalReviews={serializedCourse._count.reviews}
                   courseId={serializedCourse.id}
-                  canReview={!!enrollment && !!session?.user?.id}
+                  canReview={!!enrollment && !!userId}
                 />
               </TabsContent>
             </Tabs>
@@ -180,7 +188,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
             <CourseEnrollment 
               course={serializedCourse}
               enrollment={enrollment}
-              isAuthenticated={!!session}
+              isAuthenticated={!!userId}
             />
           </div>
         </div>

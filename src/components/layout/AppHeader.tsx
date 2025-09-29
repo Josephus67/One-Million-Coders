@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
+import { useUser, useClerk } from "@clerk/nextjs";
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -89,21 +89,22 @@ const adminNavItems = [
 ];
 
 export function AppHeader() {
-  const { data: session } = useSession();
+  const { user, isSignedIn } = useUser();
+  const { signOut } = useClerk();
   const router = useRouter();
   const pathname = usePathname();
   const { notifications, unreadCount } = useNotifications();
 
   // Don't show header on auth pages
-  if (pathname.startsWith("/auth")) {
+  if (pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up")) {
     return null;
   }
 
-  const user = session?.user;
-  const isAdmin = user?.role === "ADMIN";
+  // Check if user has admin role from custom metadata (you'll need to set this up in Clerk)
+  const isAdmin = user?.publicMetadata?.role === "ADMIN";
 
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: "/auth/login" });
+    await signOut({ redirectUrl: "/" });
   };
 
   // Combine nav items based on user role
@@ -185,9 +186,9 @@ export function AppHeader() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user?.image || undefined} alt={user?.name || ""} />
+            <AvatarImage src={user?.imageUrl || undefined} alt={user?.fullName || ""} />
             <AvatarFallback>
-              {user?.name ? generateInitials(user.name) : "U"}
+              {user?.fullName ? generateInitials(user.fullName) : "U"}
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -195,8 +196,8 @@ export function AppHeader() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user?.name}</p>
-            <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+            <p className="text-sm font-medium leading-none">{user?.fullName}</p>
+            <p className="text-xs leading-none text-muted-foreground">{user?.primaryEmailAddress?.emailAddress}</p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

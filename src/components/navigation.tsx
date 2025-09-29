@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useUser, useClerk } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -37,12 +37,13 @@ const navigation = [
 ];
 
 export function Navigation() {
-  const { data: session } = useSession();
+  const { user, isSignedIn } = useUser();
+  const { signOut } = useClerk();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: "/auth/login" });
+    await signOut({ redirectUrl: "/" });
   };
 
   return (
@@ -95,9 +96,9 @@ export function Navigation() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={session?.user?.image || ""} alt={session?.user?.name || ""} />
+                    <AvatarImage src={user?.imageUrl || ""} alt={user?.fullName || ""} />
                     <AvatarFallback>
-                      {session?.user?.name?.charAt(0)?.toUpperCase() || "U"}
+                      {user?.firstName?.charAt(0)?.toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -106,16 +107,12 @@ export function Navigation() {
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">
-                      {session?.user?.name}
+                      {user?.fullName}
                     </p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {session?.user?.email}
+                      {user?.primaryEmailAddress?.emailAddress}
                     </p>
-                    {session?.user?.role && (
-                      <Badge variant="secondary" className="w-fit text-xs">
-                        {session.user.role}
-                      </Badge>
-                    )}
+                    {/* Role badge can be added later based on custom user metadata */}
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />

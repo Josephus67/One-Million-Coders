@@ -1,10 +1,8 @@
 "use client";
 
-"use client";
-
 import React from "react";
 import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,7 +37,7 @@ export function CourseReviews({
   courseId, 
   canReview 
 }: CourseReviewsProps) {
-  const { data: session } = useSession();
+  const { user, isSignedIn } = useUser();
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
@@ -48,7 +46,7 @@ export function CourseReviews({
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!session?.user?.id) return;
+    if (!user?.id) return;
 
     setIsSubmitting(true);
     setError(null);
@@ -111,7 +109,7 @@ export function CourseReviews({
   };
 
   // Check if user has already reviewed
-  const userHasReviewed = session?.user?.id && reviews.some(r => r.user.id === session.user.id);
+  const userHasReviewed = user?.id && reviews.some(r => r.user.id === user.id);
 
   return (
     <div className="space-y-6">

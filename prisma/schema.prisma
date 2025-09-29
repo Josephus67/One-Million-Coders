@@ -7,53 +7,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
+// Clerk manages authentication entirely
 
 model User {
-  id            String           @id @default(cuid())
+  id            String           @id // Clerk user ID
   name          String?
   email         String           @unique
   emailVerified DateTime?
   image         String?
-  password      String?
-  role          Role             @default(STUDENT)
+  role          String           @default("STUDENT")
   bio           String?
+  phone         String?
+  website       String?
+  location      String?
+  linkedin      String?
+  github        String?
+  twitter       String?
+  skills        Json?           // JSON for PostgreSQL
+  interests     Json?           // JSON for PostgreSQL
+  profileBanner String?
+  isProfilePublic Boolean        @default(true)
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
-  accounts      Account[]
-  sessions      Session[]
   certificates  Certificate[]
   courses       Course[]
   enrollments   Enrollment[]
@@ -82,10 +57,10 @@ model Course {
   description   String
   slug          String        @unique
   image         String?
-  level         Level
+  level         String
   price         Decimal       @default(0)
   duration      String?
-  status        CourseStatus  @default(DRAFT)
+  status        String        @default("DRAFT")
   averageRating Float         @default(0)
   totalReviews  Int           @default(0)
   createdAt     DateTime      @default(now())
@@ -188,7 +163,7 @@ model Notification {
   id        String           @id @default(cuid())
   title     String
   message   String
-  type      NotificationType @default(INFO)
+  type      String           @default("INFO")
   isRead    Boolean          @default(false)
   userId    String
   createdAt DateTime         @default(now())
@@ -214,33 +189,4 @@ model UserPreferences {
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_preferences")
-}
-
-enum Role {
-  STUDENT
-  INSTRUCTOR
-  ADMIN
-}
-
-enum Level {
-  BEGINNER
-  INTERMEDIATE
-  ADVANCED
-}
-
-enum CourseStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
-
-  @@map("course_status")
-}
-
-enum NotificationType {
-  INFO
-  SUCCESS
-  WARNING
-  ERROR
-
-  @@map("notification_type")
 }

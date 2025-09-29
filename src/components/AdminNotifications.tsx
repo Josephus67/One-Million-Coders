@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,7 @@ interface User {
 }
 
 export function AdminNotifications({ onBack }: AdminNotificationsProps) {
-  const { data: session } = useSession();
+  const { user, isSignedIn } = useUser();
   const [formData, setFormData] = useState<NotificationCreateData>({
     title: "",
     message: "",
@@ -140,7 +140,7 @@ export function AdminNotifications({ onBack }: AdminNotificationsProps) {
   };
 
   // Check if user is admin
-  const isAdmin = session?.user?.role === "ADMIN";
+  const isAdmin = user?.publicMetadata?.role === "ADMIN";
 
   if (!isAdmin) {
     return (

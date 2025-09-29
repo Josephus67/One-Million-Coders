@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs";
 import { Notification, NotificationResponse } from "@/types/notifications";
 
 export function useNotifications() {
-  const { data: session } = useSession();
+  const { user, isSignedIn } = useUser();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -13,27 +13,57 @@ export function useNotifications() {
 
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
-    if (!session?.user?.id) return;
+    if (!isSignedIn || !user?.id) return;
 
     try {
       setLoading(true);
+      setError(null);
+      
       const response = await fetch("/api/notifications");
       
       if (!response.ok) {
-        throw new Error("Failed to fetch notifications");
+        // Handle different error status codes
+        if (response.status === 401) {
+          setError("Authentication required");
+          return;
+        }
+        
+        // Try to get error message from response
+        let errorMessage = "Failed to fetch notifications";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch {
+          // Response wasn't JSON, use default error
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+      
+      // Handle case where API returns error with 200 status
+      if (data.error) {
+        console.warn("API returned error with 200 status:", data.error);
+        setNotifications([]);
+        setError(null); // Don't show error to user for graceful degradation
+        return;
+      }
+      
       // API returns { notifications: [...], pagination: {...} }
       setNotifications(data.notifications || []);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const errorMessage = err instanceof Error ? err.message : "An error occurred";
+      setError(errorMessage);
       console.error("Error fetching notifications:", err);
+      
+      // Set empty notifications array to prevent app crashes
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
-  }, [session?.user?.id]);
+  }, [user?.id, isSignedIn]);
 
   // Mark notification as read
   const markAsRead = async (notificationId: string) => {
@@ -122,7 +152,7 @@ export function useNotifications() {
       const newNotification = await response.json();
       
       // If it's for the current user, add to local state
-      if (!data.userId || data.userId === session?.user?.id) {
+      if (!data.userId || data.userId === user?.id) {
         setNotifications(prev => [newNotification, ...prev]);
       }
 
@@ -140,14 +170,14 @@ export function useNotifications() {
 
   // Set up polling for new notifications (every 30 seconds)
   useEffect(() => {
-    if (!session?.user?.id) return;
+    if (!isSignedIn || !user?.id) return;
 
     const interval = setInterval(() => {
       fetchNotifications();
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [fetchNotifications, session?.user?.id]);
+  }, [fetchNotifications, user?.id, isSignedIn]);
 
   return {
     notifications,

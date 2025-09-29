@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
+import { prisma, withDatabaseConnection } from "@/lib/prisma";
 import { z } from "zod";
 
 // GET /api/courses - Get all courses with optional filtering
@@ -112,9 +111,9 @@ const createCourseSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
-    if (!session || !session.user) {
+    if (!userId) {
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 }
@@ -122,10 +121,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user is instructor or admin
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { role: true },
+    const user = await withDatabaseConnection(async () => {
+      return prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
     });
+
+    if (user === null) {
+      return NextResponse.json(
+        { error: "Database temporarily unavailable" },
+        { status: 503 }
+      );
+    }
 
     if (!user || (user.role !== "INSTRUCTOR" && user.role !== "ADMIN")) {
       return NextResponse.json(
@@ -156,21 +164,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const course = await prisma.course.create({
-      data: {
-        ...data,
-        slug,
-        instructorId: session.user.id,
-        status: "DRAFT",
-      },
-      include: {
-        instructor: {
-          select: { id: true, name: true, image: true },
+    const course = await withDatabaseConnection(async () => {
+      return prisma.course.create({
+        data: {
+          ...data,
+          slug,
+          instructorId: userId,
+          status: "DRAFT",
         },
-        category: {
-          select: { id: true, name: true, slug: true },
+        include: {
+          instructor: {
+            select: { id: true, name: true, image: true },
+          },
+          category: {
+            select: { id: true, name: true, slug: true },
+          },
         },
-      },
+      });
     });
 
     return NextResponse.json(course, { status: 201 });

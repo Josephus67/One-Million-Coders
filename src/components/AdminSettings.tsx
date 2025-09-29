@@ -69,7 +69,7 @@ export function AdminSettings({ onBack }: AdminSettingsProps) {
   const saveSettings = async (settingType: string) => {
     try {
       // In real app, this would call the backend
-      console.log(`Saving ${settingType} settings...`);
+      console.error(`Saving ${settingType} settings...`);
       
       toast.success(`${settingType} settings saved successfully!`);
     } catch (error) {

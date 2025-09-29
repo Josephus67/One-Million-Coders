@@ -1,11 +1,9 @@
 "use client";
 
-"use client";
-
 import React from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,13 +38,13 @@ interface CourseEnrollmentProps {
 
 export function CourseEnrollment({ course, enrollment, isAuthenticated }: CourseEnrollmentProps) {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { user, isSignedIn } = useUser();
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleEnroll = async () => {
-    if (!isAuthenticated) {
-      router.push("/auth/login");
+    if (!isSignedIn) {
+      router.push("/sign-in");
       return;
     }
 
@@ -80,6 +78,11 @@ export function CourseEnrollment({ course, enrollment, isAuthenticated }: Course
   };
 
   const handleContinueLearning = () => {
+    if (!course.lessons || course.lessons.length === 0) {
+      setError("This course has no lessons available yet. Please try again later.");
+      return;
+    }
+
     if (enrollment?.lessonProgress && enrollment.lessonProgress.length > 0) {
       // Find the first incomplete lesson
       const incompleteLessons = course.lessons.filter(lesson => 
@@ -90,7 +93,7 @@ export function CourseEnrollment({ course, enrollment, isAuthenticated }: Course
         router.push(`/learn/${incompleteLessons[0].id}`);
       } else {
         // All lessons completed, go to first lesson for review
-        router.push(`/learn/${course.lessons[0]?.id}`);
+        router.push(`/learn/${course.lessons[0].id}`);
       }
     } else {
       // No progress yet, start with first lesson
@@ -138,10 +141,18 @@ export function CourseEnrollment({ course, enrollment, isAuthenticated }: Course
                 </p>
               </div>
 
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
               <Button 
                 onClick={handleContinueLearning} 
                 className="w-full" 
                 size="lg"
+                disabled={!course.lessons || course.lessons.length === 0}
               >
                 <PlayCircle className="w-5 h-5 mr-2" />
                 {enrollment.progress > 0 ? "Continue Learning" : "Start Learning"}
@@ -168,7 +179,7 @@ export function CourseEnrollment({ course, enrollment, isAuthenticated }: Course
                 <p className="text-sm text-gray-600 text-center">
                   <Button 
                     variant="link" 
-                    onClick={() => router.push("/auth/login")}
+                    onClick={() => router.push("/sign-in")}
                     className="p-0 h-auto"
                   >
                     Sign in
@@ -176,7 +187,7 @@ export function CourseEnrollment({ course, enrollment, isAuthenticated }: Course
                   {" "}or{" "}
                   <Button 
                     variant="link" 
-                    onClick={() => router.push("/auth/register")}
+                    onClick={() => router.push("/sign-up")}
                     className="p-0 h-auto"
                   >
                     create an account

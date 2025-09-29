@@ -179,7 +179,7 @@ export function UnauthorizedError() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button onClick={() => window.location.href = '/auth/login'}>
+            <Button onClick={() => window.location.href = '/sign-in'}>
               Sign In
             </Button>
             <Button variant="outline" onClick={() => window.location.href = '/'}>

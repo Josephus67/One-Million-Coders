@@ -38,7 +38,12 @@ export function CourseRecommendations({ user, progress, onCourseSelect, onEnroll
   // Get user's preferred categories based on enrolled courses
   const enrolledCourses = enrolledCourseIds.map(id => getCourseById(id)).filter(Boolean);
   const categoryPreferences = enrolledCourses.reduce((acc, course) => {
-    acc[course!.category] = (acc[course!.category] || 0) + 1;
+    const categoryName = typeof course!.category === 'string' 
+      ? course!.category 
+      : (course!.category as any)?.name;
+    if (categoryName) {
+      acc[categoryName] = (acc[categoryName] || 0) + 1;
+    }
     return acc;
   }, {} as Record<string, number>);
 
@@ -61,8 +66,11 @@ export function CourseRecommendations({ user, progress, onCourseSelect, onEnroll
       let score = 0;
       
       // Category preference score (40% weight)
-      if (categoryPreferences[course.category]) {
-        score += categoryPreferences[course.category] * 40;
+      const categoryName = typeof course.category === 'string' 
+        ? course.category 
+        : (course.category as any)?.name;
+      if (categoryName && categoryPreferences[categoryName]) {
+        score += categoryPreferences[categoryName] * 40;
       }
       
       // Skill level match (30% weight)
@@ -96,10 +104,13 @@ export function CourseRecommendations({ user, progress, onCourseSelect, onEnroll
   );
 
   const categoryRecommendations = allCourses
-    .filter(course => 
-      course.category === favoriteCategory && 
-      !enrolledCourseIds.includes(course.id)
-    )
+    .filter(course => {
+      const categoryName = typeof course.category === 'string' 
+        ? course.category 
+        : (course.category as any)?.name;
+      return categoryName === favoriteCategory && 
+        !enrolledCourseIds.includes(course.id);
+    })
     .slice(0, 3);
 
   // Trending courses (mock data based on ratings and students)

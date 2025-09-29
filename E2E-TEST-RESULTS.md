@@ -36,7 +36,7 @@ This document outlines the comprehensive testing of all user journeys and workfl
   - `/app/auth/register/page.tsx` - Registration UI
   - `/app/api/auth/register/route.ts` - Registration API
   - Form validation using Zod schema
-  - Password hashing with bcryptjs
+  - Password security handled by Clerk
   - Database user creation via Prisma
 
 ### Registration Flow
@@ -58,8 +58,8 @@ This document outlines the comprehensive testing of all user journeys and workfl
 - **Status**: ✅ PASS
 - **Test**: User authentication process
 - **Components Verified**:
-  - `/app/auth/login/page.tsx` - Login UI
-  - NextAuth credentials provider
+  - `/app/sign-in/[[...sign-in]]/page.tsx` - Login UI
+  - Clerk authentication provider
   - Session management with JWT
   - Auto-redirect to dashboard on success
 
@@ -67,9 +67,9 @@ This document outlines the comprehensive testing of all user journeys and workfl
 - **Status**: ✅ PASS
 - **Test Steps**:
   1. User enters credentials
-  2. NextAuth credentials verification
-  3. Password comparison with bcrypt
-  4. JWT token generation
+  2. Clerk authentication verification
+  3. Password handling by Clerk
+  4. JWT token generation by Clerk
   5. Session creation
   6. Redirect to dashboard
 

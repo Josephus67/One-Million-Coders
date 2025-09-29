@@ -1,84 +1,39 @@
-import { withAuth } from "next-auth/middleware";
-import { NextResponse } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { NextResponse } from 'next/server'
 
-// Define protected routes
-const protectedRoutes = [
-  "/dashboard",
-  "/courses/:path*",
-  "/my-courses",
-  "/profile",
-  "/settings",
-  "/notifications",
-  "/api/notifications/:path*",
-  "/api/enrollments/:path*",
-];
+// Define route matchers
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/api/courses(.*)',
+  '/sign-in(.*)',
+  '/sign-up(.*)'
+])
 
-// Define admin routes
-const adminRoutes = [
-  "/admin/:path*",
-];
+const isProtectedRoute = createRouteMatcher([
+  '/dashboard(.*)',
+  '/my-courses(.*)',
+  '/profile(.*)',
+  '/notifications(.*)',
+  '/admin(.*)'
+])
 
-// Define public routes (accessible without authentication)
-const publicRoutes = [
-  "/",
-  "/auth/:path*",
-  "/api/auth/:path*",
-  "/api/courses",
-  "/api/courses/:path*",
-];
+export default clerkMiddleware((auth, req) => {
+  // Add security headers to all responses
+  const response = NextResponse.next()
+  response.headers.set('X-Frame-Options', 'DENY')
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  response.headers.set('X-XSS-Protection', '1; mode=block')
+  response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
 
-export default withAuth(
-  function middleware(req) {
-    const { pathname } = req.nextUrl;
-    const token = req.nextauth.token;
-
-    // Allow access to public routes
-    if (publicRoutes.some(route => {
-      const pattern = route.replace(":path*", ".*");
-      return new RegExp(`^${pattern}$`).test(pathname);
-    })) {
-      return NextResponse.next();
-    }
-
-    // Redirect unauthenticated users to login
-    if (!token) {
-      const loginUrl = new URL("/auth/login", req.url);
-      loginUrl.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-
-    // Check admin routes
-    if (adminRoutes.some(route => {
-      const pattern = route.replace(":path*", ".*");
-      return new RegExp(`^${pattern}$`).test(pathname);
-    })) {
-      if (token.role !== "ADMIN") {
-        return NextResponse.redirect(new URL("/dashboard", req.url));
-      }
-    }
-
-    // Allow access to protected routes for authenticated users
-    return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        const { pathname } = req.nextUrl;
-        
-        // Always allow access to public routes
-        if (publicRoutes.some(route => {
-          const pattern = route.replace(":path*", ".*");
-          return new RegExp(`^${pattern}$`).test(pathname);
-        })) {
-          return true;
-        }
-
-        // For protected routes, check if user is authenticated
-        return !!token;
-      },
-    },
+  // Protect routes
+  if (isProtectedRoute(req)) {
+    auth.protect();
   }
-);
+
+  return response
+})
 
 export const config = {
   matcher: [

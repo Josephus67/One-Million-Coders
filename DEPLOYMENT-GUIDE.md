@@ -11,10 +11,13 @@ DATABASE_URL="your-production-database-url"
 
 # In Vercel dashboard (Settings → Environment Variables):
 DATABASE_URL = your-production-database-url
-NEXTAUTH_URL = https://your-app-name.vercel.app
-NEXTAUTH_SECRET = fQLY3ywin7ytfmxTRHJnmpM+YLJLhXn4zQoEVogxN58=
-GOOGLE_CLIENT_ID = your-google-client-id
-GOOGLE_CLIENT_SECRET = your-google-client-secret
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = your-clerk-publishable-key
+CLERK_SECRET_KEY = your-clerk-secret-key
+NEXT_PUBLIC_CLERK_SIGN_IN_URL = /sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL = /sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL = /dashboard
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL = /dashboard
+WEBHOOK_SECRET = your-clerk-webhook-secret
 APP_URL = https://your-app-name.vercel.app
 ```
 

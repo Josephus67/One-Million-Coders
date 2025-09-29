@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -54,15 +53,15 @@ type SerializedEnrollment = {
 };
 
 export default async function MyCoursesPage() {
-  const session = await getServerSession(authOptions);
+  const { userId } = await auth();
 
-  if (!session?.user?.id) {
-    redirect("/auth/login");
+  if (!userId) {
+    throw new Error("Unauthorized");
   }
 
   // Get user enrollments
   const enrollments = await prisma.enrollment.findMany({
-    where: { userId: session.user.id },
+    where: { userId: userId },
     include: {
       course: {
         include: {

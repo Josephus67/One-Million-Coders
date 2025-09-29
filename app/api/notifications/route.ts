@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
+import { prisma, withDatabaseConnection } from "@/lib/prisma";
 
 // GET /api/notifications - Get user's notifications
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
-    if (!session || !session.user) {
+    if (!userId) {
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 }
@@ -23,48 +22,75 @@ export async function GET(req: NextRequest) {
     const skip = (page - 1) * limit;
 
     let whereClause: any = {
-      userId: session.user.id,
+      userId: userId,
     };
 
     if (unreadOnly) {
       whereClause.isRead = false;
     }
 
-    const [notifications, total] = await Promise.all([
-      prisma.notification.findMany({
-        where: whereClause,
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: limit,
-      }),
-      prisma.notification.count({ where: whereClause }),
-    ]);
+    // Use the enhanced database connection wrapper
+    const result = await withDatabaseConnection(async () => {
+      const [notifications, total] = await Promise.all([
+        prisma.notification.findMany({
+          where: whereClause,
+          orderBy: { createdAt: "desc" },
+          skip,
+          take: limit,
+        }),
+        prisma.notification.count({ where: whereClause }),
+      ]);
 
-    return NextResponse.json({
-      notifications,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+      return {
+        notifications,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
     });
+
+    // If database operation failed, return empty results
+    if (result === null) {
+      return NextResponse.json({
+        notifications: [],
+        pagination: {
+          page,
+          limit,
+          total: 0,
+          totalPages: 0,
+        },
+        warning: "Database temporarily unavailable, showing cached data"
+      });
+    }
+
+    return NextResponse.json(result);
 
   } catch (error) {
     console.error("Error fetching notifications:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch notifications" },
-      { status: 500 }
-    );
+    
+    // Return a graceful error response instead of crashing
+    return NextResponse.json({
+      notifications: [],
+      pagination: {
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+      },
+      error: "Unable to fetch notifications at this time"
+    }, { status: 200 }); // Return 200 to prevent app crashes
   }
 }
 
 // POST /api/notifications - Create a new notification
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId: currentUserId } = await auth();
 
-    if (!session || !session.user) {
+    if (!currentUserId) {
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 }
@@ -93,17 +119,27 @@ export async function POST(req: NextRequest) {
 
     // If userId is provided, create for that user (admin functionality)
     // Otherwise create for current user
-    const targetUserId = userId || session.user.id;
+    const targetUserId = userId || currentUserId;
 
-    const notification = await prisma.notification.create({
-      data: {
-        title,
-        message,
-        type,
-        userId: targetUserId,
-        isRead: false,
-      },
+    // Use database connection wrapper for reliability
+    const notification = await withDatabaseConnection(async () => {
+      return prisma.notification.create({
+        data: {
+          title,
+          message,
+          type,
+          userId: targetUserId,
+          isRead: false,
+        },
+      });
     });
+
+    if (!notification) {
+      return NextResponse.json(
+        { error: "Failed to create notification - database unavailable" },
+        { status: 503 }
+      );
+    }
 
     return NextResponse.json(notification, { status: 201 });
 

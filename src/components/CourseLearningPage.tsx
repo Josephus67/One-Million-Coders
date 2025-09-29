@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
@@ -18,7 +18,8 @@ import {
   Star,
   ChevronRight,
   Download,
-  Share
+  Share,
+  AlertTriangle
 } from 'lucide-react';
 import { Course, Lesson, UserProgress } from '../types/course';
 
@@ -39,10 +40,10 @@ export function CourseLearningPage({
 }: CourseLearningPageProps) {
   // Find current lesson based on user progress or default to first lesson
   const initialLesson = userProgress?.currentLesson 
-    ? course.lessons.find(l => l.id === userProgress.currentLesson) || course.lessons[0]
-    : course.lessons[0];
+    ? course.lessons?.find(l => l.id === userProgress.currentLesson) || course.lessons?.[0]
+    : course.lessons?.[0];
     
-  const [currentLesson, setCurrentLesson] = useState<Lesson>(initialLesson);
+  const [currentLesson, setCurrentLesson] = useState<Lesson | null>(initialLesson || null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sessionStartTime, setSessionStartTime] = useState<Date>(new Date());
   const [lessonStartTime, setLessonStartTime] = useState<Date>(new Date());
@@ -50,17 +51,21 @@ export function CourseLearningPage({
 
   // Reset lesson start time when lesson changes
   useEffect(() => {
-    setLessonStartTime(new Date());
-    timeSpentRef.current = 0;
-  }, [currentLesson.id]);
+    if (currentLesson) {
+      setLessonStartTime(new Date());
+      timeSpentRef.current = 0;
+    }
+  }, [currentLesson?.id]);
 
   // Track time spent every 30 seconds
   useEffect(() => {
+    if (!currentLesson) return;
+    
     const interval = setInterval(() => {
       const now = new Date();
       const sessionTime = Math.floor((now.getTime() - lessonStartTime.getTime()) / 1000 / 60); // Minutes
       
-      if (sessionTime > 0) {
+      if (sessionTime > 0 && currentLesson) {
         timeSpentRef.current = sessionTime;
         // Update progress every 30 seconds with time tracking
         onProgress(currentLesson.id, 0, 0.5); // 0.5 minutes for this interval
@@ -68,7 +73,66 @@ export function CourseLearningPage({
     }, 30000); // Every 30 seconds
 
     return () => clearInterval(interval);
-  }, [currentLesson.id, lessonStartTime, onProgress]);
+  }, [currentLesson?.id, lessonStartTime, onProgress]);
+
+  // Check if course has lessons
+  if (!course.lessons || course.lessons.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center mb-4">
+              <BookOpen className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+            </div>
+            <CardTitle className="text-xl font-semibold">Course Content Coming Soon</CardTitle>
+            <CardDescription>
+              This course is being prepared with exciting content. We're adding high-quality lessons with video tutorials. Check back soon!
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-sm">
+              <p className="text-blue-700 dark:text-blue-300 mb-2">
+                <strong>What to expect:</strong>
+              </p>
+              <ul className="text-blue-600 dark:text-blue-400 space-y-1">
+                <li>• Interactive video lessons</li>
+                <li>• Hands-on coding exercises</li>
+                <li>• Real-world projects</li>
+                <li>• Certificate upon completion</li>
+              </ul>
+            </div>
+            <Button onClick={onBack} className="w-full">
+              Back to Course
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Ensure we have a current lesson, fallback to first lesson
+  if (!currentLesson && course.lessons.length > 0) {
+    setCurrentLesson(course.lessons[0]);
+  }
+
+  // If still no current lesson, show loading state
+  if (!currentLesson) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mb-4">
+              <Play className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            </div>
+            <CardTitle className="text-xl font-semibold">Loading Lesson...</CardTitle>
+            <CardDescription>
+              Preparing your learning experience. Please wait a moment.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -83,9 +147,11 @@ export function CourseLearningPage({
 
   const handleLessonSelect = (lesson: Lesson) => {
     // Calculate and send time spent on current lesson
-    const timeSpent = Math.floor((new Date().getTime() - lessonStartTime.getTime()) / 1000 / 60);
-    if (timeSpent > 0) {
-      onProgress(currentLesson.id, 0, timeSpent);
+    if (currentLesson) {
+      const timeSpent = Math.floor((new Date().getTime() - lessonStartTime.getTime()) / 1000 / 60);
+      if (timeSpent > 0) {
+        onProgress(currentLesson.id, 0, timeSpent);
+      }
     }
     
     setCurrentLesson(lesson);
@@ -108,7 +174,9 @@ export function CourseLearningPage({
 
   const handleProgress = (progress: number) => {
     // Send minimal time update (this gets called frequently during video watching)
-    onProgress(currentLesson.id, progress);
+    if (currentLesson) {
+      onProgress(currentLesson.id, progress);
+    }
   };
 
   const completedLessons = course.lessons.filter(l => l.isCompleted).length;
@@ -133,7 +201,7 @@ export function CourseLearningPage({
               
               <div className="hidden md:block">
                 <h1 className="text-xl font-semibold text-gray-900">{course.title}</h1>
-                <p className="text-sm text-gray-600">by {course.instructor || 'Unknown Instructor'}</p>
+                <p className="text-sm text-gray-600">by {typeof course.instructor === 'string' ? course.instructor : course.instructor?.name || 'Unknown Instructor'}</p>
               </div>
             </div>
             
@@ -190,7 +258,7 @@ export function CourseLearningPage({
                 <Card
                   key={lesson.id}
                   className={`mb-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
-                    currentLesson.id === lesson.id 
+                    currentLesson!.id === lesson.id 
                       ? 'ring-2 ring-blue-500 bg-blue-50' 
                       : 'hover:bg-gray-50'
                   }`}
@@ -201,7 +269,7 @@ export function CourseLearningPage({
                       <div className="flex-shrink-0 mt-1">
                         {lesson.isCompleted ? (
                           <CheckCircle className="w-5 h-5 text-green-600" />
-                        ) : currentLesson.id === lesson.id ? (
+                        ) : currentLesson?.id === lesson.id ? (
                           <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
                             <Play className="w-3 h-3 text-white fill-current" />
                           </div>
@@ -214,7 +282,7 @@ export function CourseLearningPage({
                       
                       <div className="flex-1 min-w-0">
                         <h3 className={`text-sm font-medium truncate ${
-                          currentLesson.id === lesson.id ? 'text-blue-700' : 'text-gray-900'
+                          currentLesson?.id === lesson.id ? 'text-blue-700' : 'text-gray-900'
                         }`}>
                           {lesson.title}
                         </h3>
@@ -301,7 +369,7 @@ export function CourseLearningPage({
                     <div className="flex items-center space-x-3">
                       <User className="w-5 h-5 text-gray-400" />
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{course.instructor || 'Unknown Instructor'}</p>
+                        <p className="text-sm font-medium text-gray-900">{typeof course.instructor === 'string' ? course.instructor : course.instructor?.name || 'Unknown Instructor'}</p>
                         <p className="text-xs text-gray-600">Instructor</p>
                       </div>
                     </div>
@@ -318,7 +386,12 @@ export function CourseLearningPage({
                       <BookOpen className="w-5 h-5 text-gray-400" />
                       <div>
                         <p className="text-sm font-medium text-gray-900">{course.level} Level</p>
-                        <p className="text-xs text-gray-600">{course.category || 'Uncategorized'}</p>
+                        <p className="text-xs text-gray-600">
+                          {typeof course.category === 'string' 
+                            ? course.category 
+                            : (course.category as any)?.name || 'Uncategorized'
+                          }
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -329,12 +402,12 @@ export function CourseLearningPage({
                     <Button
                       variant="outline"
                       onClick={() => {
-                        const currentIndex = course.lessons.findIndex(l => l.id === currentLesson.id);
+                        const currentIndex = course.lessons.findIndex(l => l.id === currentLesson!.id);
                         if (currentIndex > 0) {
                           setCurrentLesson(course.lessons[currentIndex - 1]);
                         }
                       }}
-                      disabled={course.lessons.findIndex(l => l.id === currentLesson.id) === 0}
+                      disabled={course.lessons.findIndex(l => l.id === currentLesson!.id) === 0}
                     >
                       <ArrowLeft className="w-4 h-4 mr-2" />
                       Previous Lesson
@@ -342,12 +415,12 @@ export function CourseLearningPage({
                     
                     <Button
                       onClick={() => {
-                        const currentIndex = course.lessons.findIndex(l => l.id === currentLesson.id);
+                        const currentIndex = course.lessons.findIndex(l => l.id === currentLesson!.id);
                         if (currentIndex < course.lessons.length - 1) {
                           setCurrentLesson(course.lessons[currentIndex + 1]);
                         }
                       }}
-                      disabled={course.lessons.findIndex(l => l.id === currentLesson.id) === course.lessons.length - 1}
+                      disabled={course.lessons.findIndex(l => l.id === currentLesson!.id) === course.lessons.length - 1}
                     >
                       Next Lesson
                       <ChevronRight className="w-4 h-4 ml-2" />

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
@@ -10,9 +9,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
-    if (!session || !session.user) {
+    if (!userId) {
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 }
@@ -22,7 +21,7 @@ export async function GET(
     const enrollment = await prisma.enrollment.findUnique({
       where: { 
         id: params.id,
-        userId: session.user.id, // Ensure user owns this enrollment
+        userId: userId, // Ensure user owns this enrollment
       },
       include: {
         course: {
@@ -88,9 +87,9 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
-    if (!session || !session.user) {
+    if (!userId) {
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 }
@@ -104,7 +103,7 @@ export async function PUT(
     const existingEnrollment = await prisma.enrollment.findUnique({
       where: { 
         id: params.id,
-        userId: session.user.id,
+        userId: userId,
       },
     });
 
@@ -172,9 +171,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
-    if (!session || !session.user) {
+    if (!userId) {
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 }
@@ -185,7 +184,7 @@ export async function DELETE(
     const existingEnrollment = await prisma.enrollment.findUnique({
       where: { 
         id: params.id,
-        userId: session.user.id,
+        userId: userId,
       },
       include: {
         course: {

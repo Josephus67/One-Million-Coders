@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { auth } from '@clerk/nextjs/server';
+import { prisma, withDatabaseConnection } from '@/lib/prisma';
 import LearningPageClient from './learning-page-client';
 
 interface PageProps {
@@ -22,7 +21,8 @@ function serializeForClient(data: any) {
 }
 
 async function getLessonData(lessonId: string, userId: string) {
-  try {
+  // Use database connection wrapper for reliable data fetching
+  const result = await withDatabaseConnection(async () => {
     // Get the lesson and its course
     const lesson = await prisma.lesson.findUnique({
       where: {
@@ -67,7 +67,7 @@ async function getLessonData(lessonId: string, userId: string) {
     });
 
     if (!lesson) {
-      return null;
+      return { type: 'not_found' };
     }
 
     // Check if user is enrolled in the course
@@ -84,42 +84,52 @@ async function getLessonData(lessonId: string, userId: string) {
     });
 
     if (!enrollment) {
-      return null;
+      return { type: 'not_enrolled' };
     }
 
     return {
+      type: 'success',
       lesson,
       course: lesson.course,
       enrollment,
     };
-  } catch (error) {
-    console.error('Error fetching lesson data:', error);
-    return null;
+  });
+
+  if (result === null) {
+    throw new Error('Database connection failed. Please try again later.');
   }
+
+  return result;
 }
 
 export default async function LearningPage({ params }: PageProps) {
-  const session = await getServerSession(authOptions);
+  const { userId } = await auth();
 
-  if (!session?.user?.id) {
+  if (!userId) {
     notFound();
   }
 
-  const data = await getLessonData(params.id, session.user.id);
+  const data = await getLessonData(params.id, userId);
 
-  if (!data) {
+  if (data.type === 'not_found' || data.type === 'not_enrolled') {
     notFound();
   }
+
+  if (data.type !== 'success') {
+    throw new Error('Failed to load lesson data');
+  }
+
+  const { lesson, course, enrollment } = data;
 
   // Serialize data for client components
-  const serializedData = serializeForClient(data);
+  const serializedData = serializeForClient({ lesson, course, enrollment });
 
   return (
     <LearningPageClient 
       lesson={serializedData.lesson}
       course={serializedData.course}
       enrollment={serializedData.enrollment}
-      userId={session.user.id}
+      userId={userId}
     />
   );
 }

@@ -50,6 +50,7 @@ async function main() {
     where: { email: 'instructor@ghanatechonline.com' },
     update: {},
     create: {
+      id: 'user_seed_instructor_001', // Placeholder Clerk ID
       email: 'instructor@ghanatechonline.com',
       name: 'Dr. Samuel Kwame',
       role: 'ADMIN',

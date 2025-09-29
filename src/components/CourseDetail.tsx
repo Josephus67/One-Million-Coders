@@ -113,7 +113,10 @@ export function CourseDetail({ courseId, isEnrolled, onEnroll, onStartLearning, 
                         {course.level}
                       </Badge>
                       <Badge className="bg-blue-100 text-blue-800 border-blue-200">
-                        {course.category || 'Uncategorized'}
+                        {typeof course.category === 'string' 
+                          ? course.category 
+                          : (course.category as any)?.name || 'Uncategorized'
+                        }
                       </Badge>
                     </div>
                     
@@ -232,7 +235,7 @@ export function CourseDetail({ courseId, isEnrolled, onEnroll, onStartLearning, 
                   <div className="w-16 h-16 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mx-auto mb-3">
                     <Users className="w-8 h-8" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-1">{course.instructor || 'Unknown Instructor'}</h3>
+                  <h3 className="font-semibold text-gray-900 mb-1">{typeof course.instructor === 'string' ? course.instructor : course.instructor?.name || 'Unknown Instructor'}</h3>
                   <p className="text-sm text-gray-600">Senior Instructor</p>
                 </div>
               </CardContent>

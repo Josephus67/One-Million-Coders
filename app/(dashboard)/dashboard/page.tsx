@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { prisma, withDatabaseConnection } from "@/lib/prisma";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,39 +17,44 @@ import {
 } from "lucide-react";
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
+  const { userId } = await auth();
+  const user = await currentUser();
 
-  if (!session?.user?.id) {
+  if (!userId) {
     return null;
   }
 
-  // Get user enrollments and progress
-  const enrollments = await prisma.enrollment.findMany({
-    where: { userId: session.user.id },
-    include: {
-      course: {
-        include: {
-          instructor: { select: { name: true } },
-          _count: { select: { lessons: true } },
-          reviews: { select: { rating: true } },
+  // Get user enrollments and progress with error handling
+  const enrollments = await withDatabaseConnection(async () => {
+    return prisma.enrollment.findMany({
+      where: { userId: userId },
+      include: {
+        course: {
+          include: {
+            instructor: { select: { name: true } },
+            _count: { select: { lessons: true } },
+            reviews: { select: { rating: true } },
+          },
         },
+        lessonProgress: true,
       },
-      lessonProgress: true,
-    },
-    orderBy: { enrolledAt: "desc" },
-  });
+      orderBy: { enrolledAt: "desc" },
+    });
+  }) ?? [];
 
-  // Get recent courses
-  const recentCourses = await prisma.course.findMany({
-    where: { status: "PUBLISHED" },
-    include: {
-      instructor: { select: { name: true } },
-      _count: { select: { enrollments: true, lessons: true } },
-      reviews: { select: { rating: true } },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 6,
-  });
+  // Get recent courses with error handling
+  const recentCourses = await withDatabaseConnection(async () => {
+    return prisma.course.findMany({
+      where: { status: "PUBLISHED" },
+      include: {
+        instructor: { select: { name: true } },
+        _count: { select: { enrollments: true, lessons: true } },
+        reviews: { select: { rating: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    });
+  }) ?? [];
 
   const stats = {
     totalCourses: enrollments.length,
@@ -70,7 +74,7 @@ export default async function DashboardPage() {
       {/* Welcome Section */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          Welcome back, {session.user.name}!
+          Welcome back, {user?.fullName || 'Student'}!
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
           Continue your learning journey and track your progress.
@@ -225,9 +229,9 @@ export default async function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {recentCourses.slice(0, 3).map((course) => {
+              {Array.isArray(recentCourses) && recentCourses.slice(0, 3).map((course: any) => {
                 const averageRating = course.reviews.length > 0
-                  ? course.reviews.reduce((sum, review) => sum + review.rating, 0) / course.reviews.length
+                  ? course.reviews.reduce((sum: number, review: any) => sum + review.rating, 0) / course.reviews.length
                   : 0;
 
                 return (
@@ -273,6 +277,13 @@ export default async function DashboardPage() {
                   </div>
                 );
               })}
+              {(!Array.isArray(recentCourses) || recentCourses.length === 0) && (
+                <div className="text-center py-4 text-gray-500">
+                  <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No courses available at the moment.</p>
+                  <p className="text-xs">Database connection might be temporarily unavailable.</p>
+                </div>
+              )}
               <Link href="/courses">
                 <Button variant="outline" className="w-full">
                   Browse All Courses
