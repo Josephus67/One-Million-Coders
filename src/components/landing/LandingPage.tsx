@@ -382,7 +382,7 @@ export function LandingPage() {
               </div>
             </div>
             <div className="border-t border-gray-800 mt-8 pt-8 text-center">
-              <p>&copy; 2024 Ghana Tech Online. All rights reserved.</p>
+              <p>&copy; 2025 Ghana Tech Online. All rights reserved.</p>
             </div>
           </div>
         </ResponsiveContainer>
