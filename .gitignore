@@ -19,7 +19,7 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public (commented out - Next.js needs public folder)
 
 # Vuepress build output
 .vuepress/dist
@@ -67,11 +67,25 @@ next-env.d.ts
 
 # Prisma
 /prisma/migrations/
+prisma/dev.db
+prisma/*.db
 
 # Database
 *.db
 *.sqlite
 *.sqlite3
+
+# User Uploads (user-generated content)
+/public/uploads/
+!/public/uploads/.gitkeep
+
+# Documentation files that may contain sensitive info
+FINAL-SETUP.md
+DEPLOYMENT-GUIDE.md
+CLERK_INTEGRATION_SUCCESS.md
+CLERK_INTEGRATION_COMPLETE.md
+*.local.md
+SECURITY-INCIDENT-RESPONSE.md
 
 # Logs
 logs
