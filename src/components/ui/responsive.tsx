@@ -322,22 +322,17 @@ export function ResponsiveSection({
 // Responsive Card Grid
 export function ResponsiveCardGrid({ 
   children, 
-  className = "",
-  minCardWidth = 280 
+  className = ""
 }: { 
   children: ReactNode; 
   className?: string;
-  minCardWidth?: number;
 }) {
   return (
     <div 
       className={cn(
-        "grid gap-4 sm:gap-6",
+        "grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
         className
       )}
-      style={{
-        gridTemplateColumns: `repeat(auto-fill, minmax(${minCardWidth}px, 1fr))`
-      }}
     >
       {children}
     </div>

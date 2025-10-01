@@ -510,7 +510,7 @@ export default function ProfilePage() {
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Skills</h3>
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {profile.skills.map((skill) => (
+                    {(profile.skills || []).map((skill) => (
                       <Badge key={skill} variant="secondary" className="px-3 py-1">
                         {skill}
                         <button
@@ -547,7 +547,7 @@ export default function ProfilePage() {
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Interests</h3>
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {profile.interests.map((interest) => (
+                    {(profile.interests || []).map((interest) => (
                       <Badge key={interest} variant="outline" className="px-3 py-1">
                         {interest}
                         <button

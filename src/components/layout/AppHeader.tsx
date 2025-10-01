@@ -8,14 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { ResponsiveNav } from "@/components/ui/responsive";
 import { useNotifications } from "@/hooks/useNotifications";
 import { cn, generateInitials } from "@/lib/utils";
@@ -93,6 +92,8 @@ export function AppHeader() {
   const { signOut } = useClerk();
   const router = useRouter();
   const pathname = usePathname();
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { notifications, unreadCount } = useNotifications();
 
   // Don't show header on auth pages
@@ -119,11 +120,6 @@ export function AppHeader() {
       href: "/profile",
       icon: User,
     },
-    {
-      label: "Settings",
-      href: "/settings", 
-      icon: Settings,
-    },
   ];
 
   if (isAdmin) {
@@ -136,8 +132,8 @@ export function AppHeader() {
 
   // Notification component
   const NotificationButton = () => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <Dialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+      <DialogTrigger asChild>
         <Button variant="ghost" size="sm" className="relative">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
@@ -146,44 +142,53 @@ export function AppHeader() {
             </Badge>
           )}
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
-        <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {notifications.length > 0 ? (
-          <>
-            {notifications.slice(0, 5).map((notification) => (
-              <DropdownMenuItem 
-                key={notification.id}
-                className="flex flex-col items-start space-y-1 p-4"
-              >
-                <div className="font-medium text-sm">{notification.title}</div>
-                <div className="text-xs text-muted-foreground">{notification.message}</div>
-                <div className="text-xs text-muted-foreground">
-                  {new Date(notification.createdAt).toLocaleDateString()}
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Notifications</DialogTitle>
+          <DialogDescription>
+            Your recent notifications and updates
+          </DialogDescription>
+        </DialogHeader>
+        <div className="max-h-96 overflow-y-auto">
+          {notifications.length > 0 ? (
+            <div className="space-y-2">
+              {notifications.slice(0, 10).map((notification) => (
+                <div
+                  key={notification.id}
+                  className="flex flex-col space-y-1 p-3 rounded-lg border bg-card"
+                >
+                  <div className="font-medium text-sm">{notification.title}</div>
+                  <div className="text-xs text-muted-foreground">{notification.message}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(notification.createdAt).toLocaleDateString()}
+                  </div>
                 </div>
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/notifications" className="w-full text-center">
-                View all notifications
-              </Link>
-            </DropdownMenuItem>
-          </>
-        ) : (
-          <div className="p-4 text-center text-muted-foreground">
-            No new notifications
-          </div>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-
-  // User menu component
+              ))}
+              <Button
+                variant="outline"
+                className="w-full mt-4"
+                onClick={() => {
+                  setIsNotificationsOpen(false);
+                  router.push('/notifications');
+                }}
+              >
+                View All Notifications
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No new notifications</p>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );  // User menu component
   const UserMenu = () => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <Dialog open={isUserMenuOpen} onOpenChange={setIsUserMenuOpen}>
+      <DialogTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
             <AvatarImage src={user?.imageUrl || undefined} alt={user?.fullName || ""} />
@@ -192,32 +197,51 @@ export function AppHeader() {
             </AvatarFallback>
           </Avatar>
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user?.fullName}</p>
-            <p className="text-xs leading-none text-muted-foreground">{user?.primaryEmailAddress?.emailAddress}</p>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <div className="flex flex-col items-center space-y-4">
+            <Avatar className="h-16 w-16">
+              <AvatarImage src={user?.imageUrl || undefined} alt={user?.fullName || ""} />
+              <AvatarFallback className="text-lg">
+                {user?.fullName ? generateInitials(user.fullName) : "U"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="text-center">
+              <h3 className="font-semibold text-lg">{user?.fullName}</h3>
+              <p className="text-sm text-muted-foreground">{user?.primaryEmailAddress?.emailAddress}</p>
+            </div>
           </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
+        </DialogHeader>
+        <div className="space-y-2">
           {userMenuItems.map((item) => (
-            <DropdownMenuItem key={item.href} asChild>
-              <Link href={item.href} className="flex items-center">
-                <item.icon className="mr-2 h-4 w-4" />
-                <span>{item.label}</span>
-              </Link>
-            </DropdownMenuItem>
+            <Button
+              key={item.href}
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                setIsUserMenuOpen(false);
+                router.push(item.href);
+              }}
+            >
+              <item.icon className="mr-2 h-4 w-4" />
+              {item.label}
+            </Button>
           ))}
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut}>
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+            onClick={() => {
+              setIsUserMenuOpen(false);
+              handleSignOut();
+            }}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Log out
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 
   // Brand component

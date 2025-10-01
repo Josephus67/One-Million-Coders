@@ -28,6 +28,7 @@ import {
   LogOut,
   User,
 } from "lucide-react";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -41,13 +42,14 @@ export function Navigation() {
   const { signOut } = useClerk();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { unreadCount } = useNotifications();
 
   const handleSignOut = async () => {
     await signOut({ redirectUrl: "/" });
   };
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-sm border-b">
+    <nav className="bg-white dark:bg-gray-800 shadow-sm border-b relative z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -87,8 +89,18 @@ export function Navigation() {
           {/* Right Side */}
           <div className="flex items-center space-x-4">
             {/* Notifications */}
-            <Button variant="ghost" size="sm">
-              <Bell className="w-4 h-4" />
+            <Button variant="ghost" size="sm" asChild className="relative">
+              <Link href="/notifications">
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Badge>
+                )}
+              </Link>
             </Button>
 
             {/* User Menu */}
@@ -103,7 +115,7 @@ export function Navigation() {
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuContent className="w-56" align="end" sideOffset={5}>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">

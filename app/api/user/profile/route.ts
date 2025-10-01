@@ -33,7 +33,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -57,8 +57,90 @@ export async function GET() {
       },
     });
 
+    // If user doesn't exist in database, create a basic record
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      try {
+        // Get user data from Clerk
+        const clerkUser = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (clerkUser.ok) {
+          const clerkData = await clerkUser.json();
+          user = await prisma.user.create({
+            data: {
+              id: userId,
+              email: clerkData.email_addresses?.[0]?.email_address || "",
+              name: `${clerkData.first_name || ""} ${clerkData.last_name || ""}`.trim() || null,
+              image: clerkData.image_url,
+              role: "STUDENT",
+              skills: [],
+              interests: [],
+            },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+              bio: true,
+              phone: true,
+              website: true,
+              location: true,
+              linkedin: true,
+              github: true,
+              twitter: true,
+              skills: true,
+              interests: true,
+              profileBanner: true,
+              isProfilePublic: true,
+              role: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          });
+        } else {
+          // Fallback: create minimal user record
+          user = await prisma.user.create({
+            data: {
+              id: userId,
+              email: "", // Will be updated later
+              name: null,
+              role: "STUDENT",
+              skills: [],
+              interests: [],
+            },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+              bio: true,
+              phone: true,
+              website: true,
+              location: true,
+              linkedin: true,
+              github: true,
+              twitter: true,
+              skills: true,
+              interests: true,
+              profileBanner: true,
+              isProfilePublic: true,
+              role: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          });
+        }
+      } catch (createError) {
+        console.error("Error creating user record:", createError);
+        return NextResponse.json(
+          { error: "Failed to create user profile" },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json(user);
