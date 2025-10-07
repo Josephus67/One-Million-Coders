@@ -181,6 +181,7 @@ export function CourseLearningPage({
 
   const completedLessons = course.lessons.filter(l => l.isCompleted).length;
   const courseProgress = (completedLessons / course.lessons.length) * 100;
+  const allLessonsCompleted = completedLessons === course.lessons.length && course.lessons.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
@@ -206,6 +207,15 @@ export function CourseLearningPage({
             </div>
             
             <div className="flex items-center space-x-4">
+              {allLessonsCompleted && (
+                <Button
+                  onClick={() => window.location.href = `/courses/${course.slug}/exam`}
+                  className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                >
+                  <Star className="w-4 h-4 mr-2" />
+                  Take Final Exam
+                </Button>
+              )}
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-medium text-gray-900">
                   {completedLessons} of {course.lessons.length} lessons
@@ -250,6 +260,19 @@ export function CourseLearningPage({
                 {completedLessons} completed • {course.lessons.length - completedLessons} remaining
               </div>
             </div>
+            
+            {allLessonsCompleted && (
+              <div className="mt-4">
+                <Button
+                  onClick={() => window.location.href = `/courses/${course.slug}/exam`}
+                  className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                  size="sm"
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Take Final Exam
+                </Button>
+              </div>
+            )}
           </div>
           
           <ScrollArea className="h-[calc(100vh-260px)]">

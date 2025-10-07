@@ -145,18 +145,50 @@ model Review {
 }
 
 model Certificate {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  imageUrl    String?
-  issuedAt    DateTime @default(now())
-  userId      String
-  courseId    String
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  title          String
+  description    String?
+  imageUrl       String?
+  certificateUrl String?
+  examScore      Int?
+  issuedAt       DateTime @default(now())
+  userId         String
+  courseId       String
+  course         Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
   @@map("certificates")
+}
+
+model ExamQuestion {
+  id        String   @id @default(cuid())
+  courseId  String
+  text      String
+  options   Json     // Array of options [option1, option2, option3, option4]
+  answer    String   // Correct answer
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
+  @@map("exam_questions")
+}
+
+model ExamResult {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  score     Int
+  totalQuestions Int
+  correctAnswers Int
+  passed    Boolean
+  answers   Json     // Array of user's answers with question IDs
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([userId, courseId])
+  @@map("exam_results")
 }
 
 model Notification {

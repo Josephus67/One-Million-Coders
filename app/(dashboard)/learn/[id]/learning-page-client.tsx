@@ -72,6 +72,30 @@ export default function LearningPageClient({
     }
   };
 
+  // Create a map of lesson progress for quick lookup
+  const lessonProgressMap = enrollment.lessonProgress?.reduce((acc: any, lp: any) => {
+    acc[lp.lessonId] = {
+      watchProgress: lp.watchProgress,
+      isCompleted: lp.isCompleted,
+      timeSpent: lp.timeSpent,
+    };
+    return acc;
+  }, {}) || {};
+
+  // Enhance course lessons with completion status and watch progress
+  const enhancedCourse = {
+    ...course,
+    lessons: course.lessons.map((lesson: any) => {
+      const progress = lessonProgressMap[lesson.id] || {};
+      return {
+        ...lesson,
+        isCompleted: progress.isCompleted || false,
+        watchProgress: progress.watchProgress || 0,
+        timeSpent: progress.timeSpent || 0,
+      };
+    }),
+  };
+
   // Transform enrollment data to match expected UserProgress type
   const userProgress = {
     courseId: course.id,
@@ -83,19 +107,12 @@ export default function LearningPageClient({
     totalProgress: enrollment.progress || 0,
     timeSpent: enrollment.timeSpent || 0,
     enrolledAt: enrollment.enrolledAt || enrollment.createdAt || new Date().toISOString(),
-    lessonProgress: enrollment.lessonProgress?.reduce((acc: any, lp: any) => {
-      acc[lp.lessonId] = {
-        watchProgress: lp.watchProgress,
-        isCompleted: lp.isCompleted,
-        timeSpent: lp.timeSpent,
-      };
-      return acc;
-    }, {}) || {},
+    lessonProgress: lessonProgressMap,
   };
 
   return (
     <CourseLearningPage
-      course={course}
+      course={enhancedCourse}
       userProgress={userProgress}
       onBack={handleBack}
       onLessonComplete={handleLessonComplete}
