@@ -3,6 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma, withDatabaseConnection } from "@/lib/prisma";
 import { z } from "zod";
 
+// Mark route as dynamic
+export const dynamic = 'force-dynamic';
+
 const progressUpdateSchema = z.object({
   lessonId: z.string(),
   watchProgress: z.number().min(0).max(100).optional(),

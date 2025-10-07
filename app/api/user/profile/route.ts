@@ -3,6 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
+// Mark route as dynamic
+export const dynamic = 'force-dynamic';
+
 const updateProfileSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   bio: z.string().max(500, "Bio must be less than 500 characters").optional(),

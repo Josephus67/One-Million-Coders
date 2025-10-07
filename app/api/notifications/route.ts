@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma, withDatabaseConnection } from "@/lib/prisma";
 
+// Mark route as dynamic
+export const dynamic = 'force-dynamic';
+
 // GET /api/notifications - Get user's notifications
 export async function GET(req: NextRequest) {
   try {

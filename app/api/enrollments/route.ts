@@ -3,6 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
+// Mark route as dynamic
+export const dynamic = 'force-dynamic';
+
 // GET /api/enrollments - Get user's enrollments
 export async function GET(req: NextRequest) {
   try {

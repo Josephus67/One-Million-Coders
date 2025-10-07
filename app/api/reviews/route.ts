@@ -3,6 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
+// Mark route as dynamic
+export const dynamic = 'force-dynamic';
+
 // Validation schema for review submission
 const reviewSchema = z.object({
   courseId: z.string().min(1, "Course ID is required"),
