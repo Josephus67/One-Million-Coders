@@ -27,6 +27,7 @@ export interface Category {
 export interface Course {
   id: string;
   title: string;
+  slug?: string; // Added to match database schema
   description: string;
   category: Category | string; // Can be object from DB or string from mock data
   image: string;
