@@ -86,17 +86,23 @@ export default function ExamPageClient({
     setError(null);
 
     try {
+      console.log('[EXAM-CLIENT] Starting exam for course:', course.id);
+      
       // First, check if questions already exist
       const checkResponse = await fetch(`/api/exams/generate?courseId=${course.id}`);
       const checkData = await checkResponse.json();
+
+      console.log('[EXAM-CLIENT] Check response:', { count: checkData.count, hasQuestions: !!checkData.questions });
 
       let questionsData;
 
       if (checkData.questions && checkData.questions.length >= 40) {
         // Use existing questions
+        console.log(`[EXAM-CLIENT] Using ${checkData.questions.length} existing questions`);
         questionsData = checkData.questions;
       } else {
         // Generate new questions
+        console.log('[EXAM-CLIENT] Fetching questions from database...');
         const generateResponse = await fetch('/api/exams/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -104,26 +110,32 @@ export default function ExamPageClient({
         });
 
         if (!generateResponse.ok) {
-          throw new Error('Failed to generate exam questions');
+          const errorData = await generateResponse.json();
+          console.error('[EXAM-CLIENT] Failed to fetch questions:', errorData);
+          throw new Error(errorData.message || errorData.error || 'Failed to fetch exam questions. Please contact support.');
         }
 
         const generateData = await generateResponse.json();
         questionsData = generateData.questions;
+        console.log(`[EXAM-CLIENT] Fetched ${questionsData?.length || 0} questions`);
       }
 
       if (!questionsData || questionsData.length < 40) {
-        throw new Error('Insufficient questions generated. Please try again.');
+        console.error('[EXAM-CLIENT] Insufficient questions:', questionsData?.length);
+        throw new Error(`Insufficient exam questions available (${questionsData?.length || 0}/40). This course may not be ready for exams yet. Please contact support.`);
       }
 
       // Randomly select 50 questions
       const shuffled = [...questionsData].sort(() => Math.random() - 0.5);
       const selectedQuestions = shuffled.slice(0, Math.min(50, questionsData.length));
 
+      console.log(`[EXAM-CLIENT] Selected ${selectedQuestions.length} questions for exam`);
       setQuestions(selectedQuestions);
       setExamStarted(true);
       setGenerating(false);
     } catch (err: any) {
-      setError(err.message || 'Failed to start exam');
+      console.error('[EXAM-CLIENT] Error starting exam:', err);
+      setError(err.message || 'Failed to start exam. Please try again or contact support.');
       setGenerating(false);
     }
   };

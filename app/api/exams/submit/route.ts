@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
     const { userId } = await auth();
 
     if (!userId) {
+      console.log("[EXAM-SUBMIT] Unauthorized access attempt");
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -23,7 +24,11 @@ export async function POST(req: NextRequest) {
 
     const { courseId, answers } = await req.json();
 
+    console.log("[EXAM-SUBMIT] Request from user:", userId, "for course:", courseId);
+    console.log("[EXAM-SUBMIT] Number of answers submitted:", answers?.length);
+
     if (!courseId || !answers || !Array.isArray(answers)) {
+      console.error("[EXAM-SUBMIT] Invalid request data");
       return NextResponse.json(
         { error: "Invalid request. courseId and answers array are required" },
         { status: 400 }
@@ -81,7 +86,10 @@ export async function POST(req: NextRequest) {
       where: { courseId },
     });
 
+    console.log(`[EXAM-SUBMIT] Found ${questions.length} questions in database`);
+
     if (questions.length === 0) {
+      console.error(`[EXAM-SUBMIT] CRITICAL: No exam questions found for course ${courseId}`);
       return NextResponse.json(
         { error: "No exam questions found for this course" },
         { status: 404 }
@@ -115,6 +123,9 @@ export async function POST(req: NextRequest) {
     const percentageScore = (correctAnswers / totalQuestions) * 100;
     const score = Math.round((correctAnswers / totalQuestions) * 1000); // Score out of 1000
     const passed = score >= 800; // Pass if score >= 800
+
+    console.log(`[EXAM-SUBMIT] Score: ${score}/1000 (${percentageScore}%) - Passed: ${passed}`);
+    console.log(`[EXAM-SUBMIT] Correct: ${correctAnswers}/${totalQuestions}`);
 
     // Save exam result
     const examResult = await prisma.examResult.create({
@@ -207,11 +218,13 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error("Error submitting exam:", error);
+    console.error("[EXAM-SUBMIT] Error submitting exam:", error);
+    console.error("[EXAM-SUBMIT] Stack trace:", error.stack);
     return NextResponse.json(
       { 
         error: "Failed to submit exam", 
-        details: error.message 
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       },
       { status: 500 }
     );

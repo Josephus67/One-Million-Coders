@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
     const { userId } = await auth();
 
     if (!userId) {
+      console.log("[EXAM-POST] Unauthorized access attempt");
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -25,6 +26,8 @@ export async function POST(req: NextRequest) {
     }
 
     const { courseId } = await req.json();
+
+    console.log("[EXAM-POST] Request from user:", userId, "for course:", courseId);
 
     if (!courseId) {
       return NextResponse.json(
@@ -39,33 +42,46 @@ export async function POST(req: NextRequest) {
       select: {
         id: true,
         title: true,
+        slug: true,
       },
     });
 
     if (!course) {
+      console.error("[EXAM-POST] Course not found:", courseId);
       return NextResponse.json(
         { error: "Course not found" },
         { status: 404 }
       );
     }
 
+    console.log("[EXAM-POST] Fetching questions for:", course.title);
+
     // Fetch questions from database
     const questions = await prisma.examQuestion.findMany({
       where: { courseId },
     });
 
+    console.log(`[EXAM-POST] Found ${questions.length} questions in database for ${course.title}`);
+
     if (questions.length === 0) {
+      console.error(`[EXAM-POST] No exam questions found for course: ${course.title} (${courseId})`);
+      console.error("[EXAM-POST] CRITICAL: Database is missing exam questions!");
+      console.error("[EXAM-POST] Solution: Run seed script - npx tsx prisma/seed-exam-questions.ts");
+      
       return NextResponse.json(
         { 
           error: "No exam questions found for this course", 
           message: "Please contact administrator to add exam questions for this course",
           courseTitle: course.title,
+          courseId: courseId,
+          hint: "Database may not be seeded. Check server logs."
         },
         { status: 404 }
       );
     }
 
     if (questions.length < 40) {
+      console.error(`[EXAM-POST] Insufficient questions: ${questions.length}/40 for ${course.title}`);
       return NextResponse.json(
         { 
           error: "Insufficient exam questions", 
@@ -76,6 +92,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    console.log(`[EXAM-POST] Successfully returning ${questions.length} questions for ${course.title}`);
+
     return NextResponse.json({
       questions,
       message: `Found ${questions.length} questions for ${course.title}`,
@@ -83,11 +101,13 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error("Error fetching exam questions:", error);
+    console.error("[EXAM-POST] Error fetching exam questions:", error);
+    console.error("[EXAM-POST] Stack trace:", error.stack);
     return NextResponse.json(
       { 
         error: "Failed to fetch exam questions", 
-        details: error.message 
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       },
       { status: 500 }
     );
@@ -103,6 +123,7 @@ export async function GET(req: NextRequest) {
     const { userId } = await auth();
 
     if (!userId) {
+      console.log("[EXAM-GET] Unauthorized access attempt");
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -112,10 +133,26 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const courseId = searchParams.get("courseId");
 
+    console.log("[EXAM-GET] Request from user:", userId, "for course:", courseId);
+
     if (!courseId) {
       return NextResponse.json(
         { error: "Course ID is required" },
         { status: 400 }
+      );
+    }
+
+    // Verify course exists first
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      select: { id: true, title: true, slug: true }
+    });
+
+    if (!course) {
+      console.error("[EXAM-GET] Course not found:", courseId);
+      return NextResponse.json(
+        { error: "Course not found" },
+        { status: 404 }
       );
     }
 
@@ -131,17 +168,28 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    console.log(`[EXAM-GET] Found ${questions.length} questions for course: ${course.title}`);
+
+    if (questions.length === 0) {
+      console.warn(`[EXAM-GET] No exam questions found for course: ${course.title} (${courseId})`);
+      console.warn("[EXAM-GET] Please run the seed script: npx tsx prisma/seed-exam-questions.ts");
+    }
+
     return NextResponse.json({
       questions,
       count: questions.length,
+      courseTitle: course.title,
+      courseSlug: course.slug
     });
 
   } catch (error: any) {
-    console.error("Error fetching exam questions:", error);
+    console.error("[EXAM-GET] Error fetching exam questions:", error);
+    console.error("[EXAM-GET] Stack trace:", error.stack);
     return NextResponse.json(
       { 
         error: "Failed to fetch exam questions", 
-        details: error.message 
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       },
       { status: 500 }
     );
